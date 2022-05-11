@@ -4,17 +4,17 @@ set -x
 DATA_PATH=/tmp/rofi-data
 
 main() {  # add custom entries below
-    IFS=';' read cmd arg <<< $(get_cmd_and_arg "$@")
+    IFS=';' read cmd arg <<< $(get_cmd_and_arg $@)
 
     case $cmd in
         # ENTRY START
         chrome) run google-chrome;;
         incognito) run google-chrome --incognito;;
         killall) _killall "$arg";;
+        endic) [[ ! -z "$arg" ]] && run google-chrome "https://en.dict.naver.com/#/search?query=$arg";;
         # ENTRY END
         *) return;;
     esac
-
     exit
 }
 
