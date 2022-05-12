@@ -11,11 +11,19 @@ main() {  # add custom entries below
         chrome) run google-chrome;;
         incognito) run google-chrome --incognito;;
         killall) _killall "$arg";;
-        endic) [[ ! -z "$arg" ]] && run google-chrome "https://en.dict.naver.com/#/search?query=$arg";;
+        endic) _endic "$arg";;
         # ENTRY END
         *) return;;
     esac
     exit
+}
+
+_endic() {
+    if [ -z "$1" ]; then return; fi
+
+    arg=$(sed 's/ /%20/g' <<<"$@")
+
+    run google-chrome "https://en.dict.naver.com/#/search?query=$arg"
 }
 
 _killall() {
