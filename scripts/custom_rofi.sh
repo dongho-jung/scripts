@@ -27,6 +27,7 @@ _killall() {
     else
         run killall $1
     fi
+
 }
 
 run() {
@@ -43,10 +44,9 @@ write_data() {
 }
 
 get_cmd_and_arg() {
-
-    #1. killall -> data='' $1=killall -> cmd=killall arg=foo
-    #2. foo -> data=killall $1=foo -> cmd=killall arg=foo
-    #3. killall foo -> data='' $1=killall $2=foo -> cmd=killall arg=foo
+    #A-1. 'cmd' -> data= $1=cmd -> 'cmd;'
+    #A-2. 'arg' -> data=cmd $1=arg -> 'cmd;arg'
+    #B. 'cmd arg' -> data= $1=cmd $2=arg -> 'cmd;arg'
 
     data=$(read_data)
     if [ -z $data ]; then cmd=$1; shift; else cmd=$data; fi
