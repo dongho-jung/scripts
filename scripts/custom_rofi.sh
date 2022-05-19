@@ -12,6 +12,7 @@ main() {  # add custom entries below
         incognito) run google-chrome --incognito;;
         killall) _killall "$arg";;
         endic) _endic "$arg";;
+        thunar) run thunar;;
         # ENTRY END
         *) return;;
     esac
