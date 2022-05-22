@@ -7,4 +7,4 @@ fi
 
 prev_window=`xdotool getactivewindow`
 
-xdotool windowactivate $1 sleep 0.1 key --clearmodifiers $2 windowactivate $prev_window
+xdotool windowactivate $1 key --clearmodifiers $2 windowactivate $prev_window
