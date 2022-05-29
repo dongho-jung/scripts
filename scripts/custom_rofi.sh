@@ -10,9 +10,10 @@ main() {  # add custom entries below
         # ENTRY START
         chrome) run google-chrome;;
         incognito) run google-chrome --incognito;;
-        killall) _killall "$arg";;
         endic) _endic "$arg";;
         thunar) run thunar;;
+        feh) run feh "$arg";;
+        killall) _killall "$arg";;
         # ENTRY END
         *) return;;
     esac
