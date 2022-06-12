@@ -6,14 +6,18 @@ DATA_PATH=/tmp/rofi-data
 main() {  # add custom entries below
     IFS=';' read cmd arg <<< $(get_cmd_and_arg $@)
 
+    # TODO case-sensitive ordering
     case $cmd in
         # ENTRY START
-        chrome) run google-chrome;;
-        incognito) run google-chrome --incognito;;
-        endic) _endic "$arg";;
-        thunar) run thunar;;
-        feh) run feh "$arg";;
-        killall) _killall "$arg";;
+        Chrome) run $chrome;;
+        Incognito) run $chrome --incognito;;
+        Endic) _endic "$arg";;
+        cOde) run code;;
+        Mail) run $chrome "mail.google.com";;
+        Thunar) run thunar;;
+        Feh) run feh "$arg";;
+        Peek) run peek;;
+        Killall) _killall "$arg";;
         # ENTRY END
         *) return;;
     esac
@@ -21,11 +25,11 @@ main() {  # add custom entries below
 }
 
 _endic() {
-    if [ -z "$1" ]; then return; fi
+    if [ -z "$1" ]; then  run $chrome "en.dict.naver.com/#/main"; return; fi
 
     arg=$(sed 's/ /%20/g' <<<"$@")
 
-    run google-chrome "https://en.dict.naver.com/#/search?query=$arg"
+    run $chrome "en.dict.naver.com/#/search?query=$arg"
 }
 
 _killall() {
@@ -62,6 +66,8 @@ get_cmd_and_arg() {
     if [ -z $data ]; then cmd=$1; shift; else cmd=$data; fi
     echo "$cmd;$@"
 }
+
+chrome=$([ -x "$(command -v google-chrome)" ] && echo google-chrome || echo google-chrome-stable)
 
 # at initial call of script, empty data
 if [ $ROFI_RETV -eq 0 ]; then write_data; fi
