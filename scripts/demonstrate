@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ "$#" -eq 1 ]; then
+    result=`cp "$1" /tmp/demonstrating 2>&1`
+    notify-send "[+] cp \"$1\" /tmp/demonstrating $result"
+    exit
+fi
+
+head -n1 /tmp/demonstrating | xargs -d '\n' xdotool type --delay 1
+xdotool key Return
+sed -i '1d' /tmp/demonstrating
