@@ -1,0 +1,85 @@
+#!/bin/bash
+# Overwrite With History
+
+MAX=1000
+BASE="$HOME/.local/share/owh"
+
+print_help() {
+cat <<EOF
+Usage: ${0##*/} [-c] [-t] [<file>]
+
+    -c      copy $BASE or $BASE/<file path> to clipboard
+    -h      print this help message
+    -t      tree $BASE
+EOF
+}
+
+to_clipboard() {
+    echo -n "$1" | xclip -selection clipboard
+}
+
+parse_args() {
+    while getopts cht option; do
+        case "${option}" in
+            c) [ $# -eq 1 ] && to_clipboard "$BASE" || to_clipboard "$BASE`realpath $2`"; exit 0;;
+            h) print_help; exit 0;;
+            t) tree -a "$BASE"; exit 0;;
+            *) print_help; exit 1;;
+        esac
+    done
+
+    shift $((OPTIND - 1))
+}
+
+repl() {
+    PS3='>'
+    options=("list versions of $REALPATH" "clear versions of $REALPATH" "copy $TARGET to clipboard")
+
+    while true; do
+        echo
+        select opt in "${options[@]}" Quit
+        do
+            case $REPLY in
+                1)                      ls -Alh "$TARGET"; break;;
+                2)                      rm -rI  "$TARGET"; exit 0;;
+                3)                      to_clipboard "$TARGET"; exit 0;;
+                $((${#options[@]}+1)))  break 2;;
+                *)                      break;
+            esac
+        done
+    done
+}
+
+overwrite_with_history() {
+    if [ ! -d "$TARGET" ]; then mkdir -p "$TARGET"; fi
+
+    cat >/tmp/owh
+    { diff $1 /tmp/owh || true; } | tee "${TARGET}/`date +'%Y-%m-%d_%H:%M:%S'`" # see diff(1) epilogue
+    # TODO if [ $EXIT_CODE -eq 2 ]; then exit 1; fi
+    cat /tmp/owh >"$1"
+    rm /tmp/owh
+
+    while [ $(ls -1 "$TARGET" | wc -l) -gt $MAX ]; do
+        OLDEST=$(ls -1tr "$TARGET/"* | head -1)
+        rm "$OLDEST"
+    done
+}
+
+parse_args $@
+
+if [ $# -ne 1 ]; then
+    print_help
+    exit 1
+fi
+
+REALPATH=`realpath $1`
+TARGET="$BASE`realpath $1`"
+
+umask 0077
+set -eo pipefail
+
+if [ ! -p /dev/stdin ]; then
+    repl $@
+else
+    overwrite_with_history $@
+fi
