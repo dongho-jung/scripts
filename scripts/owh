@@ -54,8 +54,7 @@ overwrite_with_history() {
     if [ ! -d "$TARGET" ]; then mkdir -p "$TARGET"; fi
 
     cat >/tmp/owh
-    { diff $1 /tmp/owh || true; } | tee "${TARGET}/`date +'%Y-%m-%d_%H:%M:%S'`" # see diff(1) epilogue
-    # TODO if [ $EXIT_CODE -eq 2 ]; then exit 1; fi
+    { diff $1 /tmp/owh || [ $? -ne 2 ]; } | tee "${TARGET}/`date +'%Y-%m-%d_%H:%M:%S'`" # see diff(1) epilogue
     cat /tmp/owh >"$1"
     rm /tmp/owh
 
