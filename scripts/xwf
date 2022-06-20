@@ -1,0 +1,18 @@
+#!/bin/bash
+
+command=$1
+
+shift
+
+for (( i=1; i<="$#"; i++ )); do
+    command=$(echo $command | sed "s/\\\\${i}/${!i}/")
+done
+
+if [ -p /dev/stdin ]; then
+    while IFS= read line; do
+        command=$(echo $command | sed "s/\\\\${i}/${line}/")
+        ((i++))
+    done
+fi
+
+echo $command | xargs -0 -I{} sh -c "{}"
