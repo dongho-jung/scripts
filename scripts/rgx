@@ -18,7 +18,7 @@ def rgx(input_, pattern, template='', raw=False, flags='', delim='\n', sub=False
     flags = functools.reduce(lambda x, y: x|y, [getattr(re, _) for _ in set('AILMSXU') & set(flags)], 0)
 
     if grep and template and (not sub):
-        print(f"Error: can't use {highlight('<template>')} with {highlight('<-g, --grep>')} flag without {highlight('<-s,--sub>')} flag", file=sys.stderr)
+        raise re.error("can't use <template> with <-g, --grep> flag without <-s,--sub> flag")
         exit(1)
 
     if raw:
@@ -62,6 +62,6 @@ if __name__ == '__main__':
     try:
         rgx(input_=sys.stdin.read(), **args.__dict__)
     except re.error as e:
-        print(f"Error: {highlight(e.msg)}")
-        print('Arguments: ' + ' '.join(f"{k}={v!r}" for k,v in args.__dict__.items()))
+        print(f"Error: {highlight(e.msg)}", file=sys.stderr)
+        print('Arguments: ' + ' '.join(f"{k}={v!r}" for k,v in args.__dict__.items()), file=sys.stderr)
         exit(1)
