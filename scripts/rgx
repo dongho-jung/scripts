@@ -5,39 +5,63 @@ import functools
 import re
 import sys
 
-parser = argparse.ArgumentParser(description='find regex pattern from stdin and print captured groups with template')
-parser.add_argument('pattern', help="pattern. ex) '(\w+):(\d+)' or '(?P<app>\w+?)app)'")
-parser.add_argument('template', nargs='?', help="output template. ex) '{0}:{1}' or '{key}={value}'. default is {0} {1} {2}...")
-parser.add_argument('-s', '--sub', action='store_true', help='instead of only printing captured groups, substitutes pattern with templaeg')
-parser.add_argument('-f', '--flags', default='', type=str, help='flags for regex. ex) -fMS <- MULTILINE | DOTALL')
-parser.add_argument('-d', '--delim', default='\n', nargs='?', type=str, help='line delimiter. default is \\n')
-parser.add_argument('-r', '--raw', action='store_true', help='escape <pattern> to use it as raw string')
+def highlight(_):
+    return f'\033[91m\033[1m{_}\033[0m'
 
-args = parser.parse_args()
+def highlight_match(match):
+    s = match.group()
+    for group in match.groups():
+        s = re.sub(re.escape(group), highlight(group), s)
+    return s
 
-if __name__ == '__main__':
-    flags = functools.reduce(lambda x, y: x|y, [getattr(re, _) for _ in set('AILMSXU') & set(args.flags)], 0)
-    delim = args.delim or ''
+def rgx(input_, pattern, template='', raw=False, flags='', delim='\n', sub=False, grep=False):
+    flags = functools.reduce(lambda x, y: x|y, [getattr(re, _) for _ in set('AILMSXU') & set(flags)], 0)
 
-    if args.raw:
-        pattern = '\n'.join(map(re.escape, args.pattern.splitlines()))
+    if grep and template and (not sub):
+        print(f"Error: can't use {highlight('<template>')} with {highlight('<-g, --grep>')} flag without {highlight('<-s,--sub>')} flag", file=sys.stderr)
+        exit(1)
+
+    if raw:
+        pattern = '\n'.join(map(re.escape, pattern.splitlines()))
 
         if sys.stdin.isatty():
             print(pattern)
             exit()
-    else:
-        pattern = args.pattern
 
-    if args.sub:
-        template = args.template or ''
-        template = re.sub('{(\d+)}', lambda _: fr'\{int(_.group(1))+1}', template)
+    if sub:
+        template = re.sub('{(\d+)}', lambda _: fr'\g<{int(_.group(1))+1}>', template)
         template = re.sub('{(\w+)}', r'\\g<\1>', template)
 
-        print(re.sub(pattern, template, sys.stdin.read()), end='')
-    else:
-        if args.template:
-            for match in re.finditer(pattern, sys.stdin.read(), flags):
-                print(args.template.format(*(_ or '' for _ in match.groups()), **match.groupdict()), end=delim)
+        if grep:
+            print(re.sub(pattern, highlight(template), input_), end='')
         else:
-            for match in re.finditer(pattern, sys.stdin.read(), flags):
-                print(' '.join((_ or '' for _ in match.groups())), end=delim)
+            print(re.sub(pattern, template, input_), end='')
+    else:
+        if grep:
+            print(re.sub(pattern, highlight_match, input_), end='')
+        else:
+            if template:
+                for match in re.finditer(pattern, input_, flags):
+                    print(template.format(*(_ or '' for _ in match.groups()), **match.groupdict()), end=delim)
+            else:
+                for match in re.finditer(pattern, input_, flags):
+                    print(' '.join((_ or '' for _ in match.groups())), end=delim)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='find regex pattern from stdin and print captured groups with template')
+    parser.add_argument('pattern', help="pattern. ex) '(\w+):(\d+)' or '(?P<app>\w+?)app)'")
+    parser.add_argument('template', nargs='?', help="output template. ex) '{0}:{1}' or '{key}={value}'. default is {0} {1} {2}...")
+    parser.add_argument('-r', '--raw', action='store_true', help='escape <pattern> to use it as raw string')
+    parser.add_argument('-f', '--flags', default='', type=str, help='flags for regex. ex) -fMS <- MULTILINE | DOTALL')
+    parser.add_argument('-d', '--delim', default='\n', nargs='?', type=str, help='line delimiter. default is \\n')
+    parser.add_argument('-s', '--sub', action='store_true', help='instead of only printing captured groups, substitutes pattern with template')
+    parser.add_argument('-g', '--grep', action='store_true', help='instead of only printing captured groups, prints all with highlighting like grep')
+
+    args = parser.parse_args()
+
+    try:
+        rgx(input_=sys.stdin.read(), **args.__dict__)
+    except re.error as e:
+        print(f"Error: {highlight(e.msg)}")
+        print('Arguments: ' + ' '.join(f"{k}={v!r}" for k,v in args.__dict__.items()))
+        exit(1)
