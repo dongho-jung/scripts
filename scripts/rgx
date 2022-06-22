@@ -1,25 +1,91 @@
 #!/usr/bin/env python
 
 import argparse
-import functools
 import re
 import sys
+import functools
+
+def regex_to_fstring(s):
+    s = re.sub(r'\\(\d)', lambda _: fr'{{{int(_.group(1))-1}}}', s)
+    s = re.sub(r'\\g<(\w+)>', r'{\1}', s)
+    return s
 
 def highlight(_):
     return f'\033[91m\033[1m{_}\033[0m'
 
-def highlight_match(match):
-    s = match.group()
-    for group in match.groups():
-        s = re.sub(re.escape(group), highlight(group), s)
+def highlight_matched(matched):
+    base = matched.start()
+    s = matched.group()
+    for start, end in matched.regs[1:]:
+        start -= base
+        end -= base
+        s = s[:start] + '\033[91m\033[1m' + s[start:end] + '\033[0m' + s[end:]
+        base -= 13  # len(ascii escae sequences of red, bold, end above)
     return s
 
-def rgx(input_, pattern, template='', raw=False, flags='', delim='\n', sub=False, grep=False):
-    flags = functools.reduce(lambda x, y: x|y, [getattr(re, _) for _ in set('AILMSXU') & set(flags)], 0)
+def get_line_reader(buffer_line_size):
+    s = ''
+    line_count = 0
+    
+    for line in iter(sys.stdin.readline, ''):
+        line_count += 1
+        s += line
+        if line_count >= buffer_line_size:
+            nl_pos = s.find('\n') + 1
+            head, s = s[:nl_pos], s[nl_pos:]
+            line_count -= 1
+            printed_characters = yield head + s
+            if printed_characters:
+                printed_characters -= len(head)
+                line_count -= s[:printed_characters].count('\n')
+                s = s[printed_characters:]
+    yield s
+    
+def unbuffered_rgx(buffer_line_size, func):
+    line_reader = get_line_reader(buffer_line_size)
+    
+    s = next(line_reader)
+    while True:
+        try:
+            s = line_reader.send(func(s))
+        except StopIteration:
+            break    
 
-    if grep and template and (not sub):
-        raise re.error("can't use <template> with <-g, --grep> flag without <-s,--sub> flag")
-        exit(1)
+def unbuffered_sub(s, pattern, template, flags):
+    matched = None
+    offset = 0
+    for matched in re.finditer(pattern, s, flags=flags):
+        if callable(template):
+            substituted_s = re.sub(pattern, template, matched.group(), flags=flags)
+        else:
+            groups_without_none = ['' if _ is None else _ for _ in matched.groups()]
+            groupdict_without_none = {k: '' if v is None else v for k, v in matched.groupdict().items()}
+            substituted_s = regex_to_fstring(template).format(*groups_without_none, **groupdict_without_none)
+        s = s[:matched.regs[0][0] + offset] + substituted_s + s[matched.regs[0][1] + offset:]
+        offset += len(substituted_s) - (matched.regs[0][1] - matched.regs[0][0])
+    if matched:
+        print(s, end='', flush=True)
+        return len(s) - offset
+    else:
+        nl_pos = s.find('\n') + 1
+        print(s[:nl_pos], end='', flush=True)
+        return nl_pos
+
+def rgx(pattern, template='', **kwargs):
+    sub = kwargs.get('sub', False)
+    emphasize = kwargs.get('emphasize', False)
+    unbuffered = kwargs.get('unbuffered', None)
+
+    raw = kwargs.get('raw', False)
+
+    flags = kwargs.get('flags', '').strip()
+    delim = kwargs.get('delim', '\n')
+    lines = kwargs.get('lines', unbuffered or pattern.count('\n'))
+
+    if emphasize and template and (not sub):
+        raise ValueError("can't use <-e, --emphasize> and <template> without <-s,--sub>")
+    if emphasize and sub and (not template):
+        raise ValueError("can't use <-e, --emphasize> and <-s,--sub> without <template>")
 
     if raw:
         pattern = '\n'.join(map(re.escape, pattern.splitlines()))
@@ -28,40 +94,70 @@ def rgx(input_, pattern, template='', raw=False, flags='', delim='\n', sub=False
             print(pattern)
             exit()
 
-    if sub:
-        template = re.sub('{(\d+)}', lambda _: fr'\g<{int(_.group(1))+1}>', template)
-        template = re.sub('{(\w+)}', r'\\g<\1>', template)
+    flags = functools.reduce(lambda x, y: x|y, [getattr(re, _) for _ in set(flags.strip())], 0)
 
-        if grep:
-            print(re.sub(pattern, highlight(template), input_), end='')
+    if (not sub) and (not emphasize) and (unbuffered is None):
+        if not template:
+            for matched in re.finditer(pattern, sys.stdin.read(), flags=flags):
+                groups_without_none = [_ for _ in matched.groups() if _ is not None]
+                print(' '.join(groups_without_none), end=delim)
         else:
-            print(re.sub(pattern, template, input_), end='')
-    else:
-        if grep:
-            print(re.sub(pattern, highlight_match, input_), end='')
+            for matched in re.finditer(pattern, sys.stdin.read(), flags=flags):
+                groups_without_none = ['' if _ is None else _ for _ in matched.groups()]
+                groupdict_without_none = {k: '' if v is None else v for k, v in matched.groupdict().items()}
+                print(regex_to_fstring(template).format(*groups_without_none, **groupdict_without_none))
+    elif sub and (not emphasize) and (unbuffered is None):
+        print(re.sub(pattern, template, sys.stdin.read(), flags=flags))
+    elif (not sub) and emphasize and (unbuffered is None):
+        print(re.sub(pattern, highlight_matched, sys.stdin.read(), flags=flags))
+    elif sub and emphasize and (unbuffered is None):
+        print(re.sub(pattern, highlight(template), sys.stdin.read(), flags=flags))
+    elif (not sub) and (not emphasize) and (unbuffered is not None):
+        if not template:
+            def func(s):
+                matched = None
+                for matched in re.finditer(pattern, s, flags=flags):
+                    groups_without_none = [_ for _ in matched.groups() if _ is not None]
+                    print(' '.join(groups_without_none), end=delim, flush=True)
+                return matched.regs[-1][-1] if matched else 0
         else:
-            if template:
-                for match in re.finditer(pattern, input_, flags):
-                    print(template.format(*(_ or '' for _ in match.groups()), **match.groupdict()), end=delim)
-            else:
-                for match in re.finditer(pattern, input_, flags):
-                    print(' '.join((_ or '' for _ in match.groups())), end=delim)
+            def func(s):
+                matched = None
+                for matched in re.finditer(pattern, s, flags=flags):
+                    groups_without_none = ['' if _ is None else _ for _ in matched.groups()]
+                    groupdict_without_none = {k: '' if v is None else v for k, v in matched.groupdict().items()}
+                    print(regex_to_fstring(template).format(*groups_without_none, **groupdict_without_none), end=delim, flush=True)
+                return matched.regs[-1][-1] if matched else 0
+        unbuffered_rgx(lines, func)
+    elif sub and (not emphasize) and (unbuffered is not None):
+        func = functools.partial(unbuffered_sub, pattern=pattern, template=template, flags=flags)
+        unbuffered_rgx(lines, func)
+    elif (not sub) and emphasize and (unbuffered is not None):
+        func = functools.partial(unbuffered_sub, pattern=pattern, template=highlight_matched, flags=flags)
+        unbuffered_rgx(lines, func)
+    elif sub and emphasize and (unbuffered is not None):
+        func = functools.partial(unbuffered_sub, pattern=pattern, template=highlight(template), flags=flags)
+        unbuffered_rgx(lines, func)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='find regex pattern from stdin and print captured groups with template')
     parser.add_argument('pattern', help="pattern. ex) '(\w+):(\d+)' or '(?P<app>\w+?)app)'")
-    parser.add_argument('template', nargs='?', help="output template. ex) '{0}:{1}' or '{key}={value}'. default is {0} {1} {2}...")
+    parser.add_argument('template', nargs='?', default='', help="output template. ex) '{0}:{1}' or '{key}={value}'. default is {0} {1} {2}...")
+
+    parser.add_argument('-s', '--sub', action='store_true', help='instead of only printing captured groups, substitutes pattern with template')
+    parser.add_argument('-e', '--emphasize', action='store_true', help='instead of only printing captured groups, prints all with emphasizing captured groups')
+    parser.add_argument('-u', '--unbuffered', type=int, help='running in unbuffered mode with <UNBUFFERED> lines window. 0 for lines of pattern')
+
     parser.add_argument('-r', '--raw', action='store_true', help='escape <pattern> to use it as raw string')
+    
     parser.add_argument('-f', '--flags', default='', type=str, help='flags for regex. ex) -fMS <- MULTILINE | DOTALL')
     parser.add_argument('-d', '--delim', default='\n', nargs='?', type=str, help='line delimiter. default is \\n')
-    parser.add_argument('-s', '--sub', action='store_true', help='instead of only printing captured groups, substitutes pattern with template')
-    parser.add_argument('-g', '--grep', action='store_true', help='instead of only printing captured groups, prints all with highlighting like grep')
 
     args = parser.parse_args()
 
     try:
-        rgx(input_=sys.stdin.read(), **args.__dict__)
-    except re.error as e:
-        print(f"Error: {highlight(e.msg)}", file=sys.stderr)
+        rgx(**args.__dict__)
+    except Exception as e:
+        print(f"\nError: {highlight(str(e))}", file=sys.stderr)
         print('Arguments: ' + ' '.join(f"{k}={v!r}" for k,v in args.__dict__.items()), file=sys.stderr)
         exit(1)
