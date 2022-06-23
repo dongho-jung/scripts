@@ -15,4 +15,4 @@ if [ -p /dev/stdin ]; then
     done
 fi
 
-echo $command | xargs -0 -I{} sh -c "{}"
+$command
