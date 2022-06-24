@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+
+import argparse
+import re
+import sys
+import time
+
+parser = argparse.ArgumentParser(description='regulate pipe speed')
+parser.add_argument('size', help="chunk size. ex) 3C(haracter) or L(ine) or 1W(word)")
+parser.add_argument('delay', type=float, help="delay in seconds. ex) 1 or 0.2 or 5")
+
+args = parser.parse_args()
+
+def get_reader_with_delimiter(delimiter, count):
+    def reader():
+        s = ''
+        for chunk in iter(lambda: sys.stdin.read(80), ''):
+            s += chunk
+            if s.count(delimiter) >= count:
+                out = delimiter.join(s.split(delimiter)[:count]) + delimiter
+                yield out
+                s = s[len(out):]
+        while s:
+            out = delimiter.join(s.split(delimiter)[:count]) + delimiter
+            yield out
+            s = s[len(out):]
+            
+    return reader()
+
+count, delimiter = re.match('^(\d+)?(.)$', args.size).groups()
+count = int(count or 1)
+delimiter = delimiter.upper()
+
+match delimiter:
+    case 'C':
+        reader = iter(lambda: sys.stdin.read(count), '')
+    case 'L':
+        reader = get_reader_with_delimiter('\n', count)
+    case 'W':
+        reader = get_reader_with_delimiter(' ', count)
+try:
+    for i in reader:
+        print(i, end='', flush=True)
+        time.sleep(args.delay)
+except (BrokenPipeError, IOError):
+    sys.stderr.close()
