@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Regulate speed of pipe
+
 import argparse
 import re
 import sys
