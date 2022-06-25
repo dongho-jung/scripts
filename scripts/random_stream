@@ -1,0 +1,6 @@
+#!/bin/bash
+
+while true; do
+    fortune
+    sleep 0.05
+done
