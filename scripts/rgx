@@ -5,6 +5,14 @@ import re
 import sys
 import functools
 
+expressions = {
+    r'\\e<ipv4>': r'\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b',
+    r'\\e<ipv6>': r'(?:(?:[0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))',
+    r'\\e<mac>': r'(?:[0-9A-Fa-f]{2}[:-]){5}(?:[0-9A-Fa-f]{2})',
+    r'\\e<uuid>': r'[0-9a-fA-F]{8}\\b-[0-9a-fA-F]{4}\\b-[0-9a-fA-F]{4}\\b-[0-9a-fA-F]{4}\\b-[0-9a-fA-F]{12}',
+    r'\\e<email>': r'(?:(?:[^<>()\\[\\]\\\\.,;:\\s@"]+(?:\.[^<>()\\[\\]\\\\.,;:\\s@"]+)*)|(?:".+"))@(?:(?:\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(?:(?:[a-zA-Z\-0-9]+\\.)+[a-zA-Z]{2,}))',
+}
+
 def regex_to_fstring(s):
     s = re.sub(r'\\(\d)', lambda _: fr'{{{int(_.group(1))-1}}}', s)
     s = re.sub(r'\\g<(\w+)>', r'{\1}', s)
@@ -77,6 +85,7 @@ def rgx(pattern, template='', **kwargs):
     unbuffered = kwargs.get('unbuffered', None)
 
     raw = kwargs.get('raw', False)
+    extended_expression = kwargs.get('extended_expression', False)
 
     flags = kwargs.get('flags', '').strip()
     delim = kwargs.get('delim', '\n')
@@ -89,12 +98,16 @@ def rgx(pattern, template='', **kwargs):
 
     if raw:
         pattern = '\n'.join(map(re.escape, pattern.splitlines()))
-
-        if sys.stdin.isatty():
-            print(pattern)
-            exit()
+        print(pattern, end='')
+        exit()
 
     flags = functools.reduce(lambda x, y: x|y, [getattr(re, _) for _ in set(flags.strip())], 0)
+    
+    if extended_expression:
+        for k, v in expressions.items():
+            if not re.search(r'\\e<.+?>', pattern):
+                break
+            pattern = re.sub(k, v, pattern)
 
     if (not sub) and (not emphasize) and (unbuffered is None):
         if not template:
@@ -148,7 +161,9 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--emphasize', action='store_true', help='instead of only printing captured groups, prints all with emphasizing captured groups')
     parser.add_argument('-u', '--unbuffered', type=int, help='running in unbuffered mode with <UNBUFFERED> lines window. 0 for lines of pattern')
 
-    parser.add_argument('-r', '--raw', action='store_true', help='escape <pattern> to use it as raw string')
+    parser.add_argument('-r', '--raw', action='store_true', help='print escaped <pattern> and exit')
+    parser.add_argument('-E', '--extended-expression', action='store_true',
+            help=f'use \e<...> extended expression. availables are {",".join(_[4:-1] for _ in expressions.keys())}')
     
     parser.add_argument('-f', '--flags', default='', type=str, help='flags for regex. ex) -fMS <- MULTILINE | DOTALL')
     parser.add_argument('-d', '--delim', default='\n', nargs='?', type=str, help='line delimiter. default is \\n')
@@ -158,6 +173,9 @@ if __name__ == '__main__':
     try:
         rgx(**args.__dict__)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+
         print(f"\nError: {highlight(str(e))}", file=sys.stderr)
         print('Arguments: ' + ' '.join(f"{k}={v!r}" for k,v in args.__dict__.items()), file=sys.stderr)
         exit(1)
