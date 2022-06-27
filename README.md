@@ -1,7 +1,7 @@
 # scripts
 
 # rgx
-Regex. 말 그대로 터미널에서 정규식을 쉽게 쓸 수 있도록 해주는 스크립트
+ReGeX. 터미널에서 정규식을 쉽게 쓸 수 있도록 해주는 스크립트
 ```shell
 usage: rgx [-h] [-s] [-e] [-u UNBUFFERED] [-r] [-E] [-f FLAGS] [-d [DELIM]]
            pattern [template]
@@ -10,15 +10,15 @@ find regex pattern from stdin and print captured groups with template
 
 positional arguments:
   pattern               pattern. ex) '(\w+):(\d+)' or '(?P<app>\w+?)app)'
-  template              output template. ex) '{0}:{1}' or '{key}={value}'.
-                        default is {0} {1} {2}...
+  template              output template. ex) '\1:\2' or '\g<key>=\g<value>'.
+                        default is \1 \2 \3...
 
 options:
   -h, --help            show this help message and exit
-  -s, --sub             instead of only printing captured groups, substitutes
-                        pattern with template
+  -s, --sub             instead of only printing captured groups, prints all
+                        including substituted pattern with template
   -e, --emphasize       instead of only printing captured groups, prints all
-                        with emphasizing captured groups
+                        including emphasized pattern with template
   -u UNBUFFERED, --unbuffered UNBUFFERED
                         running in unbuffered mode with <UNBUFFERED> lines
                         window. 0 for lines of pattern
@@ -39,7 +39,9 @@ options:
 - 추가로 임의의 extended expression을 지원해 \e<ipv4>나 \e<mac>과 같은 식의 표현이 가능
   
 # owh
-Overwrite With History. 어떤 파일을 수정할때 diff를 같이 백업해주는 스크립트
+Overwrite With History. 어떤 파일을 수정할때 diff를 같이 백업해주고 복구를 도와주는 스크립트
+           
+실수로 중요한 설정 파일을 잘못 수정하고 저장했을때 백업해둔 diff로 복원할때 사용
 
 ```shell
 Usage: owh [-c] [-t] [-r] [<file>]
@@ -51,8 +53,6 @@ Usage: owh [-c] [-t] [-r] [<file>]
 ```
 
 ![image](https://user-images.githubusercontent.com/19762154/175861340-8ca540d8-cbee-4518-a0b1-5a2c4f67d997.png)
-
-- 실수로 중요한 설정 파일을 잘못 수정하고 저장했을때 백업해둔 diff로 복원 기능을 지원
 
 # Others
 - custom_rofi: window switcher [rofi](https://github.com/davatorium/rofi)에 자주쓰는 항목들을 따로 모아두고 subcommand 기능을 추가해 커스텀한 스크립트
