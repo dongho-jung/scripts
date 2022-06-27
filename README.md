@@ -2,7 +2,7 @@
 
 # rgx
 ReGeX. 터미널에서 정규식을 쉽게 쓸 수 있도록 해주는 스크립트
-```shell
+```console
 usage: rgx [-h] [-s] [-e] [-u UNBUFFERED] [-r] [-E] [-f FLAGS] [-d [DELIM]]
            pattern [template]
 
@@ -43,7 +43,7 @@ Overwrite With History. 어떤 파일을 수정할때 diff를 같이 백업해�
            
 실수로 중요한 설정 파일을 잘못 수정하고 저장했을때 백업해둔 diff로 복원할때 사용
 
-```shell
+```console
 Usage: owh [-c] [-t] [-r] [<file>]
 
     -c      copy /home/dongho/.local/share/owh or /home/dongho/.local/share/owh/<file path> to clipboard
