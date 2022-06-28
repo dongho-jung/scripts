@@ -155,10 +155,10 @@ def rgx(pattern, template='', **kwargs):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='find regex pattern from stdin and print captured groups with template')
     parser.add_argument('pattern', help="pattern. ex) '(\w+):(\d+)' or '(?P<app>\w+?)app)'")
-    parser.add_argument('template', nargs='?', default='', help="output template. ex) '{0}:{1}' or '{key}={value}'. default is {0} {1} {2}...")
+    parser.add_argument('template', nargs='?', default='', help=r"output template. ex) '\1:\2' or '\g<key>=\g<value>'. default is \1 \2 \3...")
 
-    parser.add_argument('-s', '--sub', action='store_true', help='instead of only printing captured groups, substitutes pattern with template')
-    parser.add_argument('-e', '--emphasize', action='store_true', help='instead of only printing captured groups, prints all with emphasizing captured groups')
+    parser.add_argument('-s', '--sub', action='store_true', help='instead of only printing captured groups, prints all including substituted pattern with template')
+    parser.add_argument('-e', '--emphasize', action='store_true', help='instead of only printing captured groups, prints all including emphasized pattern with template')
     parser.add_argument('-u', '--unbuffered', type=int, help='running in unbuffered mode with <UNBUFFERED> lines window. 0 for lines of pattern')
 
     parser.add_argument('-r', '--raw', action='store_true', help='print escaped <pattern> and exit')
