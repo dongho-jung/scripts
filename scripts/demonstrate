@@ -6,6 +6,10 @@ if [ "$#" -eq 1 ]; then
     exit
 fi
 
-head -n1 /tmp/demonstrating | xargs -d '\n' xdotool type --delay 1
+line=`head -n1 /tmp/demonstrating`
+for i in $(seq 1 ${#line}); do
+    xdotool type --delay `shuf -i20-150 -n1` "${line:i-1:1}"
+done
+
 xdotool key Return
 sed -i '1d' /tmp/demonstrating
