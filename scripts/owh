@@ -6,11 +6,12 @@ BASE="$HOME/.local/share/owh"
 
 print_help() {
 cat <<EOF
-Usage: ${0##*/} [-c] [-t] [<file>]
+Usage: ${0##*/} [-c] [-t] [-r] [<file>]
 
     -c      copy $BASE or $BASE/<file path> to clipboard
     -h      print this help message
     -t      tree $BASE
+    -r      revert file with latest diff
 EOF
 }
 
@@ -19,16 +20,17 @@ to_clipboard() {
 }
 
 parse_args() {
-    while getopts cht option; do
+    while getopts chtr option; do
         case "${option}" in
             c) [ $# -eq 1 ] && to_clipboard "$BASE" || to_clipboard "$BASE`realpath $2`"; exit 0;;
             h) print_help; exit 0;;
             t) tree -a "$BASE"; exit 0;;
+            r) revert=1;;
             *) print_help; exit 1;;
         esac
     done
 
-    shift $((OPTIND - 1))
+    n_index=$((OPTIND - 1))
 }
 
 repl() {
@@ -54,7 +56,7 @@ overwrite_with_history() {
     if [ ! -d "$TARGET" ]; then mkdir -p "$TARGET"; fi
 
     cat >/tmp/owh
-    { diff $1 /tmp/owh || [ $? -ne 2 ]; } | tee "${TARGET}/`date +'%Y-%m-%d_%H:%M:%S'`" # see diff(1) epilogue
+    { diff -u $1 /tmp/owh || [ $? -ne 2 ]; } | tee "${TARGET}/`date +'%Y-%m-%d_%H:%M:%S'`" # see diff(1) epilogue
     cat /tmp/owh >"$1"
     rm /tmp/owh
 
@@ -65,6 +67,7 @@ overwrite_with_history() {
 }
 
 parse_args $@
+shift $n_index
 
 if [ $# -ne 1 ]; then
     print_help
@@ -72,7 +75,15 @@ if [ $# -ne 1 ]; then
 fi
 
 REALPATH=`realpath $1`
-TARGET="$BASE`realpath $1`"
+TARGET="${BASE}${REALPATH}"
+
+if [ ! -z "$revert" ]; then
+    patch_file=$(ls -Art $TARGET/* | tail -n1)
+    cat $patch_file
+    patch -R < $patch_file
+    rm $patch_file
+    exit 0
+fi
 
 umask 0077
 set -eo pipefail
