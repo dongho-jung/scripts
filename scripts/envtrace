@@ -1,0 +1,6 @@
+#!/usr/bin/env bpftrace
+
+u:libc:setenv /!@[str(arg0), str(arg1)]/ {
+    printf("[%d] %s\t%s=%s\n", pid, comm, str(arg0), str(arg1));
+    @[str(arg0), str(arg1)] = 1} i:s:$1 {clear(@); exit();
+}
