@@ -57,6 +57,7 @@ Usage: owh [-c] [-t] [-r] [<file>]
 # Others
 - custom_rofi: window switcher [rofi](https://github.com/davatorium/rofi)에 자주쓰는 항목들을 따로 모아두고 subcommand 기능을 추가해 커스텀한 스크립트
 - demonstrate: 시연용 스크립트. 시연에 필요한 스크립트를 담은 파일 foo를 demonstrate foo한 뒤, 아무 인자 없이 demonstrate를 호출하면 이전에 등록한 foo에서 맨 위부터 한줄씩 자동으로 타이핑
+- envtrace: 환경변수 변화를 추적해주는 스크립트.
 - lock: 현재 화면을 blur 처리해 screen lock 해주는 스크립트
 - random_name: docker 스타일의 random name을 출력하는 스크립트
 - random_stream: fortune 스타일의 random text를 계속 출력하는 스크립트
