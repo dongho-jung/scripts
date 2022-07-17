@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+
+# pip install thefuzz[speedup] faker
+
+import argparse
+import pydoc
+import sys
+import textwrap
+from inspect import signature
+
+from faker import Faker
+from thefuzz import process
+
+fake = Faker()
+
+def list_generators(values):
+    generators = {}
+
+    for m in dir(fake):
+        if any(m.startswith(_) for _ in ['_', 'seed', 'add_', 'set_']):
+            continue
+        if any(_ in m for _ in ['provider']):
+            continue
+
+        o = getattr(fake, m)
+        if callable(o):
+            s = signature(o)
+            generators[o.__name__] = str(s)
+
+    if values is None:
+        output = ''
+        for k, v in generators.items():
+            output += f"\033[91m\033[1m{k}\033[0m: {v}\n"
+        pydoc.pager(output)
+    else:
+        for k, score in process.extract(values, generators.keys(), limit=1000):
+            if score < 70:
+                break
+            print(f"\033[91m\033[1m{k}\033[0m: {generators[k]}", file=sys.stderr)
+
+class ListGenerators(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string):
+        list_generators(values)
+        parser.exit()
+
+class SetLocale(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string):
+        global fake
+        fake = Faker(values)
+
+example_usage = textwrap.dedent('''
+    Examples:
+      $ fake --list
+      $ fake --list mail
+      $ fake email
+      $ fake email true gmail.com  # or `fake email 1 gmail.com` as it has implicit type conversion
+      $ fake --locale ko-kr 
+''')
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+            description='generate fake data with python/faker',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog=example_usage
+            )
+    parser.add_argument('--locale', '-L', help="locale for output", action=SetLocale)
+    parser.add_argument('--list', '-l', help="list available generators their usage", nargs='?', metavar='fuzzy_str', action=ListGenerators)
+    parser.add_argument('--seed', '-s', help="seed for randomness")
+    parser.add_argument('generator', help="which one you want")
+    parser.add_argument('args', help="arguments, if need be", nargs='*')
+    args = parser.parse_args()
+
+    try:
+        generator = getattr(fake, args.generator)
+    except AttributeError as e:
+        print(e, file=sys.stderr)
+        print("similar generators are ...", file=sys.stderr)
+        list_generators(args.generator)
+        exit(1)
+    signature = signature(generator)
+
+    converted_args = []
+    for arg, param in zip(args.args, signature.parameters.values()):
+        annotation = param.annotation
+        if hasattr(annotation, '__args__'):
+            for t in annotation.__args__:
+                try:
+                    converted_args += [t(arg)]
+                except ValueError:
+                    continue
+                break
+        else:
+            converted_args += [param.annotation(arg)]
+
+    if args.seed:
+        Faker.seed(args.seed)
+
+    print(generator(*converted_args))
