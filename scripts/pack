@@ -1,0 +1,27 @@
+DIR=$HOME/.local/share/zsh
+
+repo=$1; reponame="$(basename $repo)"
+files=(${(@s/:/)2})
+version=${3:-master}
+
+declare -i idx=0
+for file in ${files[@]}; do
+    if [ $idx -eq 0 ]; then
+        target="$DIR"/"$reponame"__"$(basename $file)"
+    else
+        target="$DIR"/"$(basename $file)"
+    fi
+
+    if [ ! -f "$target" ]; then
+        curl https://raw.githubusercontent.com/"$repo"/"$version"/"$file" -o "$target"
+    fi
+
+    if [ $idx -eq 0 ]; then
+        . "$target"
+    fi
+
+    idx+=1
+done
+
+
+
