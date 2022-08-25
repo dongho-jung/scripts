@@ -2,7 +2,6 @@ DIR=$HOME/.local/share/zsh
 
 repo=$1; reponame="$(basename $repo)"
 files=(${(@s/:/)2})
-version=${3:-master}
 
 declare -i idx=0
 for file in ${files[@]}; do
@@ -13,7 +12,7 @@ for file in ${files[@]}; do
     fi
 
     if [ ! -f "$target" ]; then
-        curl https://raw.githubusercontent.com/"$repo"/"$version"/"$file" -o "$target"
+        curl https://raw.githubusercontent.com/"$repo"/HEAD/"$file" -o "$target"
     fi
 
     if [ $idx -eq 0 ]; then
@@ -22,6 +21,3 @@ for file in ${files[@]}; do
 
     idx+=1
 done
-
-
-
