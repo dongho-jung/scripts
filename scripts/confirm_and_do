@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# TODO add color sequence for emphasizing $1
+read -p "are you sure? $1 [y/n]: " reply && [ "$reply" = "y" ] && eval $1
