@@ -1,0 +1,50 @@
+#!/bin/bash
+
+direction="$1"
+
+eval $(xdotool getmouselocation --shell)
+SCREEN_WIDTH=$(xrandr | awk '/\*/ {print $1}' | cut -d'x' -f1)
+SCREEN_HEIGHT=$(xrandr | awk '/\*/ {print $1}' | cut -d'x' -f2)
+
+control_volume() {
+  local direction=$1
+
+  case "$direction" in
+    "up")
+      CURRENT_VOLUME=$(pactl list sinks | awk '/^\s*Volume:/ {print $5}' | sed 's/%//')
+      if [ "$CURRENT_VOLUME" -lt 100 ]; then
+        pactl set-sink-volume @DEFAULT_SINK@ +5% && $refresh_i3status
+      else
+        pactl set-sink-volume @DEFAULT_SINK@ 100% && $refresh_i3status
+      fi
+      ;;
+    "down")
+      pactl set-sink-volume @DEFAULT_SINK@ -5% && $refresh_i3status
+      ;;
+    *)
+      exit 1
+      ;;
+  esac
+}
+
+control_workspace() {
+  local direction=$1
+
+  case "$direction" in
+    "up")
+      i3-msg workspace next
+      ;;
+    "down")
+      i3-msg workspace prev
+      ;;
+    *)
+      exit 1
+      ;;
+  esac
+}
+
+if [ $X -lt $((SCREEN_WIDTH / 2)) ]; then
+  control_workspace "$1"
+else
+  control_volume "$1"
+fi
