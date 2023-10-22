@@ -1,3 +1,14 @@
 #!/bin/bash
 
-feh --bg-max $(find ~/pics/wallpaper -type f | shuf -n1) --no-fehbg
+tmp=`mktemp`
+
+image=$(find ~/imgs -type f | shuf -n1)
+
+screen_height=$(xrandr --current | grep '*' | uniq | awk '{print $1}' | cut -d 'x' -f2)
+
+convert $image -resize x$screen_height $tmp
+
+# Set the new image as the wallpaper
+feh --bg-tile $tmp --no-fehbg
+
+rm $tmp
