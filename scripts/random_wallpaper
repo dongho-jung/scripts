@@ -2,7 +2,11 @@
 
 tmp=`mktemp`
 
-image=$(find ~/imgs -type f | shuf -n1)
+if [ -e ~/.wallpaper-off ]; then
+    image=$(find ~/imgs/wallpaper-off -type f | shuf -n1)
+else
+    image=$(find ~/imgs/wallpaper-on -type f | shuf -n1)
+fi
 
 screen_height=$(xrandr --current | grep '*' | uniq | awk '{print $1}' | cut -d 'x' -f2)
 
