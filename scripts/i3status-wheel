@@ -11,8 +11,7 @@ control_volume() {
 
   case "$direction" in
     "up")
-      CURRENT_VOLUME=$(pactl list sinks | awk '/^\s*Volume:/ {print $5}' | sed 's/%//')
-      if [ "$CURRENT_VOLUME" -lt 100 ]; then
+      if [ "$(pamixer --get-volume)" -lt 100 ]; then
         pactl set-sink-volume @DEFAULT_SINK@ +5% && $refresh_i3status
       else
         pactl set-sink-volume @DEFAULT_SINK@ 100% && $refresh_i3status
