@@ -46,7 +46,7 @@ _killall() {
 
 run() {
     exec >/dev/null
-    i3-msg exec -- $@
+    i3-msg "exec --no-startup-id $@"
 }
 
 read_data() {
