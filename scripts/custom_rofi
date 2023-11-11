@@ -10,7 +10,7 @@ main() {  # add custom entries below
     case $cmd in
         # ENTRY START
         Chrome) run $chrome;;
-        Incognito) run $chrome --incognito;;
+        Incognito) run "$chrome --incognito";;
         Endic) _endic "$arg";;
         cOde) run code;;
         Nautilus) run nautilus;;
