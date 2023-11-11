@@ -13,9 +13,8 @@ main() {  # add custom entries below
         Incognito) run $chrome --incognito;;
         Endic) _endic "$arg";;
         cOde) run code;;
-        Mail) run $chrome "mail.google.com";;
-        Thunar) run thunar;;
-        Feh) run feh "$arg";;
+        Nautilus) run nautilus;;
+        Steam) run steam;;
         Peek) run peek;;
         Killall) _killall "$arg";;
         # ENTRY END
