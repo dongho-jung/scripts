@@ -2,6 +2,9 @@
 
 tmp=`mktemp`
 
+SESSION=$(loginctl show-user "$USER" --property Sessions --value)
+export DISPLAY=$(loginctl show-session $SESSION --property Display --value)
+
 if [ -e ~/.wallpaper-off ]; then
     image=$(find ~/imgs/wallpaper-off -type f | shuf -n1)
 else
