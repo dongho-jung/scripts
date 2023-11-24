@@ -9,14 +9,16 @@ main() {  # add custom entries below
     # TODO case-sensitive ordering
     case $cmd in
         # ENTRY START
-        Chrome) run $chrome;;
-        Incognito) run "$chrome --incognito";;
-        Endic) _endic "$arg";;
-        cOde) run code;;
-        Nautilus) run nautilus;;
-        Steam) run steam;;
-        Peek) run peek;;
-        Killall) _killall "$arg";;
+        chrome) run $chrome;;
+        incognito) run "$chrome --incognito";;
+        endic) _endic "$arg";;
+        code) run code;;
+        nautilus) run nautilus;;
+        steam) run steam;;
+        peek) run peek;;
+        killall) _killall "$arg";;
+        vpnConnect) _vpnConnect c "$arg";;
+        vpnDisconnect) run nordvpn d;;
         # ENTRY END
         *) return;;
     esac
@@ -29,6 +31,19 @@ _endic() {
     arg=$(sed 's/ /%20/g' <<<"$@")
 
     run $chrome "en.dict.naver.com/#/search?query=$arg"
+}
+
+_vpnConnect() {
+    if [ -z "$2" ]; then  run nordvpn c; return; fi
+
+    case "$2" in
+        s) CITY=Seoul;;
+        o) CITY=Osaka;;
+        t) CITY=Tokyo;; 
+        *) CITY=$1;; 
+    esac
+
+    run nordvpn c $CITY
 }
 
 _killall() {
