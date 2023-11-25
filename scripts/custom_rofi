@@ -46,6 +46,7 @@ _vpnDisconnect() {
 }
 
 _vpnConnect() {
+    old_ip=$(nordvpn status | grep IP | cut -d' ' -f2)
     if [ -z "$1" ]; then
         run nordvpn c &> /dev/null
     else
@@ -63,7 +64,11 @@ _vpnConnect() {
         if grep -q Disconnected <(nordvpn status); then
             continue
         fi
-        nordvpn status | grep IP | cut -d' ' -f2 > /tmp/public_ip
+        new_ip=$(nordvpn status | grep IP | cut -d' ' -f2)
+        if [ "$old_ip" -eq "$new_ip" ]; then
+            continue
+        fi
+        echo $new_ip > /tmp/public_ip
         nordvpn status | grep Hostname | rgx ': (.+?)\.' '(\1)' >> /tmp/public_ip
         break
     done
