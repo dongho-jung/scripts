@@ -9,16 +9,16 @@ main() {  # add custom entries below
     # TODO case-sensitive ordering
     case $cmd in
         # ENTRY START
-        chrome) run $chrome;;
-        incognito) run "$chrome --incognito";;
+        chrome) run google-chrome-stable;;
+        incognito) run "google-chrome-stable --incognito";;
         endic) _endic "$arg";;
         code) run code;;
         nautilus) run nautilus;;
         steam) run steam;;
         peek) run peek;;
         killall) _killall "$arg";;
-        vpnConnect) _vpnConnect c "$arg";;
-        vpnDisconnect) run nordvpn d;;
+        vpnConnect) _vpnConnect "$arg";;
+        vpnDisconnect) _vpnDisconnect;;
         # ENTRY END
         *) return;;
     esac
@@ -26,24 +26,47 @@ main() {  # add custom entries below
 }
 
 _endic() {
-    if [ -z "$1" ]; then  run $chrome "en.dict.naver.com/#/main"; return; fi
+    if [ -z "$1" ]; then  run google-chrome-stable "en.dict.naver.com/#/main"; return; fi
 
     arg=$(sed 's/ /%20/g' <<<"$@")
 
-    run $chrome "en.dict.naver.com/#/search?query=$arg"
+    run google-chrome-stable "en.dict.naver.com/#/search?query=$arg"
+}
+
+_vpnDisconnect() {
+    run nordvpn d >/dev/null
+    for _ in {1..10}; do
+        sleep 1
+        if grep -qv Disconnected <(nordvpn status); then
+            continue
+        fi
+        curl https://ifconfig.me > /tmp/public_ip
+        break
+    done
 }
 
 _vpnConnect() {
-    if [ -z "$2" ]; then  run nordvpn c; return; fi
+    if [ -z "$1" ]; then
+        run nordvpn c &> /dev/null
+    else
+        case "$1" in
+            s) CITY=Seoul;;
+            o) CITY=Osaka;;
+            t) CITY=Tokyo;;
+            *) CITY=Seoul;;
+        esac
+        run nordvpn c $CITY &> /dev/null
+    fi
 
-    case "$2" in
-        s) CITY=Seoul;;
-        o) CITY=Osaka;;
-        t) CITY=Tokyo;; 
-        *) CITY=$1;; 
-    esac
-
-    run nordvpn c $CITY
+    for _ in {1..10}; do
+        sleep 1
+        if grep -q Disconnected <(nordvpn status); then
+            continue
+        fi
+        nordvpn status | grep IP | cut -d' ' -f2 > /tmp/public_ip
+        nordvpn status | grep Hostname | rgx ': (.+?)\.' '(\1)' >> /tmp/public_ip
+        break
+    done
 }
 
 _killall() {
@@ -80,8 +103,6 @@ get_cmd_and_arg() {
     if [ -z $data ]; then cmd=$1; shift; else cmd=$data; fi
     echo "$cmd;$@"
 }
-
-chrome=$([ -x "$(command -v google-chrome)" ] && echo google-chrome || echo google-chrome-stable)
 
 # at initial call of script, empty data
 if [ $ROFI_RETV -eq 0 ]; then write_data; fi
