@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+set -x
+
+main() {  # add custom entries below
+    IFS=';' read cmd arg <<< $(get_cmd_and_arg $@)
+
+    # TODO case-sensitive ordering
+    case $cmd in
+        # ENTRY START
+        system-performance) run xdg-open /home/dongho/pdfs/systems-performance.pdf;;
+        bpf-performance-tools) run xdg-open /home/dongho/pdfs/bpf-performance-tools.pdf;;
+        # ENTRY END
+        *) return;;
+    esac
+    exit
+}
+
+run() {
+    exec >/dev/null
+    i3-msg "exec --no-startup-id $@"
+}
+
+get_cmd_and_arg() {
+    #A-1. 'cmd' -> data= $1=cmd -> 'cmd;'
+    #A-2. 'arg' -> data=cmd $1=arg -> 'cmd;arg'
+    #B. 'cmd arg' -> data= $1=cmd $2=arg -> 'cmd;arg'
+
+    data=$(read_data)
+    if [ -z $data ]; then cmd=$1; shift; else cmd=$data; fi
+    echo "$cmd;$@"
+}
+
+main "$@"
+
+# generates possible options by parsing above case
+sed -nr '/ENTRY START$/,/ENTRY END$/{s/^\s+(.+)\).+;;$/\1/p}' $0
