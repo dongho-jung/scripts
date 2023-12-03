@@ -11,7 +11,6 @@ main() {  # add custom entries below
         # ENTRY START
         chrome) run google-chrome-stable;;
         incognito) run "google-chrome-stable --incognito";;
-        blender) run blender;;
         endic) _endic "$arg";;
         code) run code;;
         nautilus) run nautilus;;
