@@ -1,21 +1,2 @@
 #!/bin/bash
-
-tmp=`mktemp`
-
-SESSION=$(loginctl show-user "$USER" --property Sessions --value)
-export DISPLAY=$(loginctl show-session $SESSION --property Display --value)
-
-if [ -e ~/.wallpaper-off ]; then
-    image=$(find ~/imgs/wallpaper-off -type f | shuf -n1)
-else
-    image=$(find ~/imgs/wallpaper-on -type f | shuf -n1)
-fi
-
-screen_height=$(xrandr --current | grep '*' | uniq | awk '{print $1}' | cut -d 'x' -f2)
-
-convert $image -resize x$screen_height $tmp
-
-# Set the new image as the wallpaper
-feh --bg-tile $tmp --no-fehbg
-
-rm $tmp
+DISPLAY=:0 feh --no-fehbg --bg-max $(find ~/imgs/wallpaper -type f | shuf -n1)
