@@ -37,7 +37,7 @@ _vpnDisconnect() {
     run nordvpn d >/dev/null
     for _ in {1..10}; do
         sleep 1
-        if grep -qv Disconnected <(nordvpn status); then
+        if ! grep -q Disconnected <(nordvpn status); then
             continue
         fi
         curl https://ifconfig.me > /tmp/public_ip
