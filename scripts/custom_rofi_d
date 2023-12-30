@@ -14,6 +14,7 @@ main() {  # add custom entries below
         endic) _endic "$arg";;
         code) run code;;
         nautilus) run nautilus;;
+        hibernate) _hibernate "$arg";;
         steam) run steam;;
         peek) run peek;;
         killall) _killall "$arg";;
@@ -25,8 +26,20 @@ main() {  # add custom entries below
     exit
 }
 
+_hibernate() {
+    if [ -z "$1" ]; then
+        TIME_HIBERNATE_MIN=1
+    else
+        TIME_HIBERNATE_MIN=$1
+    fi
+    TIME_HIBERNATE_SEC=$(($TIME_HIBERNATE_MIN * 60))
+
+    nohup bash -c "sleep $TIME_HIBERNATE_SEC && systemctl hibernate" >/dev/null 2>&1 & disown
+    notify-send "hibernate in $TIME_HIBERNATE_MIN minutes..."
+}
+
 _endic() {
-    if [ -z "$1" ]; then  run google-chrome-stable "en.dict.naver.com/#/main"; return; fi
+    if [ -z "$1" ]; then run google-chrome-stable "en.dict.naver.com/#/main"; return; fi
 
     arg=$(sed 's/ /%20/g' <<<"$@")
 
