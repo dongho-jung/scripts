@@ -1,2 +1,2 @@
-#!/bin/bash
-DISPLAY=:0 feh --no-fehbg --bg-max $(find ~/imgs/wallpaper -type f | shuf -n1)
+#!/run/current-system/sw/bin/bash
+swww img --resize fit --transition-type random --transition-duration 1 $(find $HOME/images/wallpapers/ -type f ! -name '*.mp4' | shuf -n1)
