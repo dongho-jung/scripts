@@ -1,4 +1,4 @@
-!/usr/bin/env bash
+#!/usr/bin/bash -ex
 
 if [ "$#" -ne 2 ]; then
     echo "[!] usage: $0 WINDOW_ID KEYS"
@@ -7,4 +7,4 @@ fi
 
 prev_window=`xdotool getactivewindow`
 
-xdotool windowactivate $1 key --clearmodifiers $2 windowactivate $prev_window
+xdotool windowactivate --sync $1 key --clearmodifiers $2 windowactivate $prev_window
