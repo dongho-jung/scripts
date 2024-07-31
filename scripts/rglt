@@ -3,13 +3,14 @@
 # Regulate speed of pipe
 
 import argparse
+import random
 import re
 import sys
 import time
 
 parser = argparse.ArgumentParser(description='regulate pipe speed')
 parser.add_argument('size', help="chunk size. ex) 3C(haracter) or L(ine) or 1W(word)")
-parser.add_argument('delay', type=float, help="delay in seconds. ex) 1 or 0.2 or 5")
+parser.add_argument('delay', help="delay in seconds. ex) 1 or 0.2 or 5")
 
 args = parser.parse_args()
 
@@ -29,9 +30,16 @@ def get_reader_with_delimiter(delimiter, count):
             
     return reader()
 
-count, delimiter = re.match('^(\d+)?(.)$', args.size).groups()
+count, delimiter = re.match(r'^(\d+)?(.)$', args.size).groups()
 count = int(count or 1)
 delimiter = delimiter.upper()
+
+if '~' in args.delay:
+    random_start, random_end = map(float, args.delay.split('~'))
+    random_range = random_end - random_start
+    get_delay = lambda: random.random() * random_range + random_start
+else:
+    get_delay = lambda: float(args.delay)
 
 match delimiter:
     case 'C':
@@ -43,6 +51,6 @@ match delimiter:
 try:
     for i in reader:
         print(i, end='', flush=True)
-        time.sleep(args.delay)
+        time.sleep(get_delay())
 except (BrokenPipeError, IOError):
     sys.stderr.close()
